@@ -3,21 +3,22 @@ from dataclasses import dataclass
 import pandas as pd
 
 from .data import DatasetProfile
-from .modeling import ModelResult
+from .modeling import ExperimentResults
 
 
 @dataclass(frozen=True)
 class Review:
     warnings: tuple[str, ...]
+    comparison: str
 
 
 def review_experiment(
     frame: pd.DataFrame,
     target: str,
     profile: DatasetProfile,
-    result: ModelResult,
+    experiment: ExperimentResults,
 ) -> Review:
-    """Flag common issues without pretending to make a final modeling judgment."""
+    """Flag common data/evaluation concerns and summarize the measured comparison."""
     warnings: list[str] = []
 
     if profile.duplicate_rows:
@@ -29,7 +30,12 @@ def review_experiment(
     if not target_share.empty and target_share.max() >= 0.8:
         warnings.append("Target distribution is imbalanced; accuracy may be misleading.")
 
-    if result.test_rows < 30:
+    test_rows = experiment.results[0].test_rows
+    if test_rows < 30:
         warnings.append("The test split is small, so evaluation metrics may be unstable.")
 
-    return Review(warnings=tuple(warnings))
+    ranked = sorted(experiment.results, key=lambda item: item.f1, reverse=True)
+    comparison = " | ".join(
+        f"{item.model_name}: F1={item.f1:.3f}, accuracy={item.accuracy:.3f}" for item in ranked
+    )
+    return Review(warnings=tuple(warnings), comparison=comparison)

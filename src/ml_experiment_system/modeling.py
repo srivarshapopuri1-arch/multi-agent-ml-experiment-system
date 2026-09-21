@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 
 import pandas as pd
+from sklearn.base import clone
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
@@ -21,16 +23,18 @@ class ModelResult:
     test_rows: int
 
 
+@dataclass(frozen=True)
+class ExperimentResults:
+    results: tuple[ModelResult, ...]
+    best_model: str
+
+
 def build_preprocessor(features: pd.DataFrame) -> ColumnTransformer:
-    """Build preprocessing from the observed feature types."""
     numeric = list(features.select_dtypes(include="number").columns)
     categorical = [column for column in features.columns if column not in numeric]
 
     numeric_pipeline = Pipeline(
-        [
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
-        ]
+        [("imputer", SimpleImputer(strategy="median")), ("scaler", StandardScaler())]
     )
     categorical_pipeline = Pipeline(
         [
@@ -38,23 +42,19 @@ def build_preprocessor(features: pd.DataFrame) -> ColumnTransformer:
             ("encoder", OneHotEncoder(handle_unknown="ignore")),
         ]
     )
-
     return ColumnTransformer(
-        [
-            ("numeric", numeric_pipeline, numeric),
-            ("categorical", categorical_pipeline, categorical),
-        ]
+        [("numeric", numeric_pipeline, numeric), ("categorical", categorical_pipeline, categorical)]
     )
 
 
-def train_baseline_classifier(
+def train_classifiers(
     frame: pd.DataFrame,
     target: str,
     *,
     test_size: float = 0.2,
     random_state: int = 42,
-) -> tuple[Pipeline, ModelResult]:
-    """Train a reproducible logistic-regression baseline for classification."""
+) -> ExperimentResults:
+    """Train a small, reproducible set of classification models on one shared split."""
     if target not in frame.columns:
         raise ValueError(f"Target column '{target}' was not found.")
 
@@ -67,29 +67,52 @@ def train_baseline_classifier(
 
     stratify = y if y.value_counts().min() >= 2 else None
     x_train, x_test, y_train, y_test = train_test_split(
-        x,
-        y,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=stratify,
+        x, y, test_size=test_size, random_state=random_state, stratify=stratify
     )
 
-    pipeline = Pipeline(
-        [
-            ("preprocessor", build_preprocessor(x)),
-            ("model", LogisticRegression(max_iter=1000, random_state=random_state)),
-        ]
-    )
-    pipeline.fit(x_train, y_train)
-    predictions = pipeline.predict(x_test)
+    preprocessor = build_preprocessor(x)
+    candidates = {
+        "logistic_regression": LogisticRegression(max_iter=1000, random_state=random_state),
+        "random_forest": RandomForestClassifier(
+            n_estimators=200, random_state=random_state, n_jobs=-1
+        ),
+    }
 
-    result = ModelResult(
-        model_name="logistic_regression",
-        accuracy=float(accuracy_score(y_test, predictions)),
-        precision=float(precision_score(y_test, predictions, average="weighted", zero_division=0)),
-        recall=float(recall_score(y_test, predictions, average="weighted", zero_division=0)),
-        f1=float(f1_score(y_test, predictions, average="weighted", zero_division=0)),
-        train_rows=len(x_train),
-        test_rows=len(x_test),
+    results: list[ModelResult] = []
+    for name, estimator in candidates.items():
+        pipeline = Pipeline(
+            [("preprocessor", clone(preprocessor)), ("model", estimator)]
+        )
+        pipeline.fit(x_train, y_train)
+        predictions = pipeline.predict(x_test)
+        results.append(
+            ModelResult(
+                model_name=name,
+                accuracy=float(accuracy_score(y_test, predictions)),
+                precision=float(
+                    precision_score(y_test, predictions, average="weighted", zero_division=0)
+                ),
+                recall=float(recall_score(y_test, predictions, average="weighted", zero_division=0)),
+                f1=float(f1_score(y_test, predictions, average="weighted", zero_division=0)),
+                train_rows=len(x_train),
+                test_rows=len(x_test),
+            )
+        )
+
+    best = max(results, key=lambda item: item.f1)
+    return ExperimentResults(results=tuple(results), best_model=best.model_name)
+
+
+def train_baseline_classifier(
+    frame: pd.DataFrame,
+    target: str,
+    *,
+    test_size: float = 0.2,
+    random_state: int = 42,
+) -> tuple[Pipeline | None, ModelResult]:
+    """Compatibility helper returning the logistic-regression result."""
+    experiment = train_classifiers(
+        frame, target, test_size=test_size, random_state=random_state
     )
-    return pipeline, result
+    result = next(item for item in experiment.results if item.model_name == "logistic_regression")
+    return None, result

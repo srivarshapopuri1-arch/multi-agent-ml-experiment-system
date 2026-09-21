@@ -40,7 +40,5 @@ if uploaded is not None:
                     )
                 st.subheader("Local model critique")
                 st.write(critique)
-        except (ValueError, TypeError) as exc:
-            st.error(str(exc))
-        except Exception as exc:
+        except (ValueError, TypeError, RuntimeError) as exc:
             st.error(f"Experiment could not be completed: {exc}")

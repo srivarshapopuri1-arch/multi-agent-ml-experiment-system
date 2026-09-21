@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     llm_model: str = "llama3.2:3b"
     ollama_base_url: str = "http://localhost:11434"
-    mlflow_tracking_uri: str = "./mlruns"
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
     random_state: int = 42
     test_size: float = Field(default=0.2, gt=0.0, lt=1.0)
     log_level: str = "INFO"

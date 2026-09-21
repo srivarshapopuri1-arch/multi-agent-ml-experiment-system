@@ -27,14 +27,25 @@ def critique_experiment(
     prompt = (
         f"Dataset rows={profile.rows}, columns={profile.columns}.\n"
         f"Measured results:\n{result_text}\nWarnings:\n{warnings}\n"
-        "Explain what these results show, what they do not establish, and one sensible next "
-        "experiment. Do not invent metrics, dataset facts, causes, or conclusions."
+        "Preprocessing already imputes missing numeric values with the median and missing "
+        "categorical values with the most frequent value before model training.\n"
+        "Review only the supplied evidence. When comparing metrics, check the numeric values "
+        "carefully and do not describe tiny differences as meaningful without evidence. "
+        "A warning about missing source values does not mean the models were trained on "
+        "unhandled missing values. Explain what the measurements show and what they do not "
+        "establish, then suggest one sensible next experiment that is not already part of the "
+        "described preprocessing. Do not invent metrics, dataset facts, causes, significance, "
+        "feature importance, or conclusions."
     )
     response = build_llm(settings).invoke(
         [
             SystemMessage(
-                content="You are reviewing a machine-learning experiment. Stay strictly within "
-                "the supplied measurements and warnings."
+                content=(
+                    "You are reviewing a machine-learning experiment. Stay strictly within the "
+                    "supplied measurements, warnings, and preprocessing details. Verify numeric "
+                    "comparisons before stating them and distinguish observed facts from possible "
+                    "next experiments."
+                )
             ),
             HumanMessage(content=prompt),
         ]

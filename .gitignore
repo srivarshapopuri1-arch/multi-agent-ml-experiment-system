@@ -16,6 +16,7 @@ htmlcov/
 .idea/
 .DS_Store
 Thumbs.db
+mlflow.db
 mlruns/
 mlartifacts/
 data/*

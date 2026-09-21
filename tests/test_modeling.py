@@ -1,9 +1,9 @@
 import pandas as pd
 
-from ml_experiment_system.modeling import train_baseline_classifier
+from ml_experiment_system.modeling import train_classifiers
 
 
-def test_baseline_classifier_returns_metrics() -> None:
+def test_classifiers_return_comparable_metrics() -> None:
     frame = pd.DataFrame(
         {
             "age": list(range(20, 60)),
@@ -12,9 +12,11 @@ def test_baseline_classifier_returns_metrics() -> None:
         }
     )
 
-    _, result = train_baseline_classifier(frame, "target", test_size=0.25)
+    experiment = train_classifiers(frame, "target", test_size=0.25)
 
-    assert result.model_name == "logistic_regression"
-    assert 0.0 <= result.accuracy <= 1.0
-    assert 0.0 <= result.f1 <= 1.0
-    assert result.train_rows + result.test_rows == len(frame)
+    assert {item.model_name for item in experiment.results} == {
+        "logistic_regression",
+        "random_forest",
+    }
+    assert experiment.best_model in {"logistic_regression", "random_forest"}
+    assert all(0.0 <= item.f1 <= 1.0 for item in experiment.results)

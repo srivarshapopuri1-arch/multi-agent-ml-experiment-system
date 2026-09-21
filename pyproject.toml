@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multi-agent-ml-experiment-system"
+version = "0.1.0"
+description = "A LangGraph workflow for structured tabular ML experimentation and evaluation."
+requires-python = ">=3.11"
+dependencies = [
+    "langchain-core>=0.3,<2",
+    "langchain-ollama>=0.3,<2",
+    "langgraph>=0.4,<2",
+    "mlflow>=3,<4",
+    "pandas>=2.2,<3",
+    "pydantic>=2.10,<3",
+    "pydantic-settings>=2.7,<3",
+    "scikit-learn>=1.6,<2",
+    "streamlit>=1.42,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3,<9",
+    "ruff>=0.9,<1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

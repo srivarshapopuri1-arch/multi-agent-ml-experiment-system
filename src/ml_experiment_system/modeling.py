@@ -80,9 +80,7 @@ def train_classifiers(
 
     results: list[ModelResult] = []
     for name, estimator in candidates.items():
-        pipeline = Pipeline(
-            [("preprocessor", clone(preprocessor)), ("model", estimator)]
-        )
+        pipeline = Pipeline([("preprocessor", clone(preprocessor)), ("model", estimator)])
         pipeline.fit(x_train, y_train)
         predictions = pipeline.predict(x_test)
         results.append(
@@ -101,18 +99,3 @@ def train_classifiers(
 
     best = max(results, key=lambda item: item.f1)
     return ExperimentResults(results=tuple(results), best_model=best.model_name)
-
-
-def train_baseline_classifier(
-    frame: pd.DataFrame,
-    target: str,
-    *,
-    test_size: float = 0.2,
-    random_state: int = 42,
-) -> tuple[Pipeline | None, ModelResult]:
-    """Compatibility helper returning the logistic-regression result."""
-    experiment = train_classifiers(
-        frame, target, test_size=test_size, random_state=random_state
-    )
-    result = next(item for item in experiment.results if item.model_name == "logistic_regression")
-    return None, result

@@ -38,11 +38,9 @@ def build_report(
     else:
         lines.append("- No configured data-quality or evaluation warnings were triggered.")
 
-    lines.extend(
-        [
-            "",
-            "These results describe this train/test split only. They are not evidence that the "
-            "selected model will generalize to new datasets or future data.",
-        ]
+    limitation = (
+        "These results describe this train/test split only. They are not evidence that the "
+        "selected model will generalize to new datasets or future data."
     )
+    lines.extend(["", limitation])
     return "\n".join(lines)

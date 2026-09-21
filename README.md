@@ -4,6 +4,16 @@ I built this project to explore how a structured set of components can organize 
 
 A CSV dataset moves through a LangGraph workflow that profiles the data, trains baseline classifiers, reviews the measured results, records runs with MLflow, and writes an experiment report. A local Ollama model can optionally critique the experiment using only the metrics, warnings, and preprocessing details supplied to it.
 
+## Technologies Used
+
+**Language & data:** Python, Pandas  
+**Machine learning:** Scikit-learn, Logistic Regression, Random Forest  
+**Workflow orchestration:** LangGraph  
+**Experiment tracking:** MLflow, SQLite  
+**Local LLM:** Ollama, Llama 3.2  
+**Interface & configuration:** Streamlit, Pydantic  
+**Testing & quality:** Pytest, Ruff
+
 ## Workflow
 
 ```text
